@@ -296,7 +296,7 @@ def start_handler1(message):
     print(message)
 
 
-# бот реагирует на сообщения
+# бот реагирует на команду /kyrs
 @bot.message_handler(commands=['kyrs'])
 def start_handler(message):
     keyboard = types.InlineKeyboardMarkup()
@@ -361,7 +361,7 @@ def start_handler(message):
 
     bot.send_message(message.from_user.id, text='Выбери какая тебе нужна валюта', reply_markup=keyboard)
 
-
+# типо главное меню
 @bot.message_handler(content_types=['text'])
 def get_text_messages(message):
     if message.text == "/help":
@@ -375,7 +375,7 @@ def get_text_messages(message):
         bot.send_message(message.from_user.id, "Я тебя не понимаю. Напиши /help.")
         print('Я тебя не понимаю. Напиши /help.')
 
-
+# обработчик клавиатуры
 @bot.callback_query_handler(func=lambda call: True)
 def callback_worker(call):
     # доллары
@@ -496,7 +496,7 @@ def callback_worker(call):
         print(islandkrona12)
 
 
-
+# проверка числа на то что это число и отправка сообщения в какую валюту перевести
 def get_age(message):
     global age
     while age == 0:
@@ -511,7 +511,7 @@ def get_age(message):
         bot.register_next_step_handler(message, get_name)
         print(message)
 
-
+# обработчик и выдача итогового результата на команде /count
 def get_name(message):
     global name
     name = message.text
