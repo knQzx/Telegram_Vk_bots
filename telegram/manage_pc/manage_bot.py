@@ -60,7 +60,14 @@ def change_wallpaper():
 
 
 def off_pc():
-    os.system('shutdown -s')
+    try:
+        os.system('shutdown -h now')
+    except:
+        pass
+    try:
+        os.system('shutdown /s')
+    except:
+        pass
 
 
 def make_cam():
