@@ -5,7 +5,7 @@ import sqlite3
 import telebot
 from telebot import types
 
-bot = telebot.TeleBot('2032759102:AAHdlvmMDN3d9sGZQNdEVqRXl3r5S5SEGzc')
+bot = telebot.TeleBot('ТОКЕН')
 
 
 @bot.message_handler(commands=['start'])
@@ -19,8 +19,10 @@ def get_command_start(message):
         f'''SELECT * FROM users WHERE id_tg="{message.from_user.id}"''').fetchone()
     res_2 = cursor.execute(
         f'''SELECT * FROM rating WHERE id_tg="{message.from_user.id}"''').fetchone()
-    res_3 = cursor.execute(f'''SELECT my_orders FROM orders WHERE id_tg="{message.from_user.id}"''').fetchone()
-    res_4 = cursor.execute(f'''SELECT completed_orders FROM orders WHERE id_tg="{message.from_user.id}"''').fetchone()
+    res_3 = cursor.execute(
+        f'''SELECT my_orders FROM orders WHERE id_tg="{message.from_user.id}"''').fetchone()
+    res_4 = cursor.execute(
+        f'''SELECT completed_orders FROM orders WHERE id_tg="{message.from_user.id}"''').fetchone()
     if res_1 is None:
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
         keyboard.add('English 🎃', 'Russian 🤖')
@@ -57,7 +59,9 @@ def get_command_start(message):
         keyboard.add('Написать в тех-поддержку 🤖')
         bot.send_message(message.from_user.id, 'Новых сообщений нет', reply_markup=keyboard)
 
-
+"""
+отправляем файл политики конфиденциальности
+"""
 def send_privacy_policy(message):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     if message.text == 'English 🎃':
@@ -68,6 +72,11 @@ def send_privacy_policy(message):
         keyboard.add('Не принимаю ❌', 'Принимаю ✅')
         bot.send_document(message.from_user.id, open('ru/privacy_policy.docx', 'rb'),
                           reply_markup=keyboard)
+
+
+"""
+поделиться телефоном
+"""
 
 
 def create_ask_phone(language):
@@ -90,8 +99,14 @@ def get_text_messages(message):
         bot.send_message(message.from_user.id, 'Hi! Can you send me your contact? :>',
                          reply_markup=create_ask_phone('en'))
     elif message.text == 'Обжаловать рейтинг 🤖':
+        """
+        обжалования рейтинга
+        """
         bot.send_message(message.from_user.id, 'Наш админ - @knQzx')
     elif message.text == 'Удалить заказ 🎃':
+        """
+        полный алгоритм поиска темы и добавления в клавиатуру
+        """
         conn = sqlite3.connect("nominal.sqlite")
         cursor = conn.cursor()
         my_ord = cursor.execute(
@@ -105,8 +120,14 @@ def get_text_messages(message):
         keyboard.add(f'Назад 👉🏿')
         bot.send_message(message.from_user.id, 'Выбери тему', reply_markup=keyboard)
     elif message.text == 'Назад 👉🏿':
+        """
+        кнопка назад
+        """
         get_command_start(message)
     elif 'Theme' in message.text:
+        """
+        полный алгоритм поиска заказа и добавления в клавиатуру
+        """
         theme_mess = message.text.split(' - ')[1]
         conn = sqlite3.connect("nominal.sqlite")
         cursor = conn.cursor()
@@ -122,6 +143,9 @@ def get_text_messages(message):
         keyboard.add('Назад 👉🏿')
         bot.send_message(message.from_user.id, 'Выбери заказ', reply_markup=keyboard)
     elif 'Заказ' in message.text and 'темы' in message.text:
+        """
+        полный алгоритм удаления заказа
+        """
         order = message.text.split()[1]
         theme_mess = message.text.split()[4]
         conn = sqlite3.connect("nominal.sqlite")
@@ -178,6 +202,9 @@ def callback_worker(call):
         keyboard.add('Назад 👉🏿')
         bot.send_message(call.message.chat.id, text_rate_send, reply_markup=keyboard)
     elif call.data == 'my_orders':
+        """
+        подключаемся к бд
+        """
         conn = sqlite3.connect("nominal.sqlite")
         cursor = conn.cursor()
         my_ord = cursor.execute(
@@ -186,10 +213,16 @@ def callback_worker(call):
             bot.send_message(call.message.chat.id, f'Пользователь id{call.message.chat.id} '
                                                    f'не имеет на данный момент действующих заказов.')
         else:
+            """
+            кнопки удалить заказ и добавить заказ
+            """
             keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
             keyboard.add('Удалить заказ 🎃', 'Добавить заказ 🤖')
             keyboard.add('Назад 👉🏿')
             json_data = json.loads(my_ord[0])
+            """
+            подгружаем в формате json данные из бд чтобы отправить челу их
+            """
             text = f'Заказы профиля id{call.message.chat.id}\n\n'
             for theme in json_data:
                 text += f'Тема: {theme}\n\n'
