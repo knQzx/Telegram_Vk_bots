@@ -5,7 +5,7 @@ import sqlite3
 import telebot
 from telebot import types
 
-bot = telebot.TeleBot('ТОКЕН')
+bot = telebot.TeleBot('2032759102:AAHdlvmMDN3d9sGZQNdEVqRXl3r5S5SEGzc')
 
 
 @bot.message_handler(commands=['start'])
@@ -52,16 +52,22 @@ def get_command_start(message):
             my_completed_orders = '0'
         else:
             my_completed_orders = len(res_4)
-        text = f'⚡️Здравствуйте, {res_1[2]} {res_1[1]} ⚡\n🔥Ваш рейтинг - {res_2[1]} ⭐\n🙀 Выполнено заказов - {my_completed_orders}\n🎃 Ваших заказов на бирже - {my_orders_on_exchange}\n🤯 Пользователей в данный момент на бирже - {random.randint(14, 49)}'
+        text = f'⚡️Здравствуйте, {res_1[2]} {res_1[1]} ⚡\n🔥Ваш рейтинг - {res_2[1]} ⭐\n' \
+               f'🙀 Выполнено заказов - {my_completed_orders}\n' \
+               f'🎃 Ваших заказов на бирже - {my_orders_on_exchange}\n' \
+               f'🤯 Пользователей в данный момент на бирже - {random.randint(14, 49)}'
         bot.send_message(message.from_user.id, text, reply_markup=keyboard)
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
         keyboard.add('Меню 👉🏿')
         keyboard.add('Написать в тех-поддержку 🤖')
         bot.send_message(message.from_user.id, 'Новых сообщений нет', reply_markup=keyboard)
 
+
 """
 отправляем файл политики конфиденциальности
 """
+
+
 def send_privacy_policy(message):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     if message.text == 'English 🎃':
@@ -103,6 +109,25 @@ def get_text_messages(message):
         обжалования рейтинга
         """
         bot.send_message(message.from_user.id, 'Наш админ - @knQzx')
+    elif message.text == 'Добавить заказ 🤖':
+        global msge
+        keyboard = types.InlineKeyboardMarkup()
+        key_1 = types.InlineKeyboardButton(text='Web ⚡️', callback_data='th_1')
+        key_2 = types.InlineKeyboardButton(text='Telegram боты 🖥', callback_data='th_2')
+        key_3 = types.InlineKeyboardButton(text='Вк боты 🔥', callback_data='th_3')
+        key_4 = types.InlineKeyboardButton(text='Скрипты 💻', callback_data='th_4')
+        key_5 = types.InlineKeyboardButton(text='Взлом хакинг 💥', callback_data='th_5')
+        key_6 = types.InlineKeyboardButton(text='Проекты для школы ✨', callback_data='th_6')
+        keyboard.add(key_1, key_2)
+        keyboard.add(key_3, key_4)
+        keyboard.add(key_5, key_6)
+        msge = bot.send_message(message.from_user.id, 'Выберите пожалуйста тему в которой будет '
+                                                      'распологаться ваш заказ',
+                                reply_markup=keyboard)
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add(f'Назад 👉🏿')
+        bot.send_message(message.from_user.id, 'Если за вами будет замечен спам и флуд - '
+                                               'вы будете забанены', reply_markup=keyboard)
     elif message.text == 'Удалить заказ 🎃':
         """
         полный алгоритм поиска темы и добавления в клавиатуру
@@ -146,8 +171,9 @@ def get_text_messages(message):
         """
         полный алгоритм удаления заказа
         """
-        order = message.text.split()[1]
-        theme_mess = message.text.split()[4]
+        order = ' '.join(message.text.split()[1:message.text.split().index('из')])
+        theme_mess = ' '.join(message.text.split()[message.text.split().index('темы') + 1:])
+        print(theme_mess, order)
         conn = sqlite3.connect("nominal.sqlite")
         cursor = conn.cursor()
         my_ord = cursor.execute(
@@ -169,7 +195,8 @@ def get_text_messages(message):
         cursor.execute(
             f'''UPDATE orders SET my_orders='{json.dumps(json_data)}'  WHERE id_tg="{message.from_user.id}"''')
         conn.commit()
-        bot.send_message(message.from_user.id, 'Успешно удалена тема.')
+        bot.send_message(message.from_user.id, 'Удалено.')
+        get_command_start(message)
     elif message.text == 'Меню 👉🏿':
         get_command_start(message)
     elif message.text == 'Написать в тех-поддержку 🤖':
@@ -229,6 +256,7 @@ def callback_worker(call):
                 for el in json_data[theme]:
                     for el_2 in el:
                         text += f'Заказ: {el_2}\n'
+                        text += f'Описание заказа: {el[el_2]["description"]}\n'
                         text += f'Дедлайн: {el[el_2]["dedline"]}\n'
                         text += f'Оплата: {el[el_2]["pay"]}\n'
                         for response in el[el_2]['responses']:
@@ -236,6 +264,105 @@ def callback_worker(call):
                             text += f'Отклик: @{response} - {el[el_2]["responses"][response]}\n'
                     text += '\n'
             bot.send_message(call.message.chat.id, text, reply_markup=keyboard)
+    elif call.data in ['th_1', 'th_2', 'th_3', 'th_4', 'th_5', 'th_6']:
+        if call.data == 'th_1':
+            theme = 'Web ⚡️'
+        elif call.data == 'th_2':
+            theme = 'Telegram боты 🖥'
+        elif call.data == 'th_3':
+            theme = 'Вк боты 🔥'
+        elif call.data == 'th_4':
+            theme = 'Скрипты 💻'
+        elif call.data == 'th_5':
+            theme = 'Взлом хакинг 💥'
+        elif call.data == 'th_6':
+            theme = 'Проекты для школы ✨'
+        bot.send_message(call.message.chat.id, 'Напишите пожалуйста название для вашего заказа')
+        bot.register_next_step_handler(call.message, title_order, theme)
+
+
+def title_order(message, theme):
+    dict_ = {}
+    if message.text == 'Назад 👉🏿':
+        get_command_start(message)
+    else:
+        name_theme = [message.text, theme]
+        dict_ = {message.text: {}}
+        bot.send_message(message.chat.id, 'Напишите ваше описание к заказу')
+        bot.register_next_step_handler(message, description_order, dict_, name_theme)
+
+
+def description_order(message, dict_, name_theme):
+    if message.text == 'Назад 👉🏿':
+        get_command_start(message)
+    else:
+        name = name_theme[0]
+        dict_[name]['description'] = message.text
+        bot.send_message(message.chat.id, 'Напишите дедлайн для вашего заказа')
+        bot.register_next_step_handler(message, dedline_order, dict_, name_theme)
+
+
+def dedline_order(message, dict_, name_theme):
+    if message.text == 'Назад 👉🏿':
+        get_command_start(message)
+    else:
+        name = name_theme[0]
+        dict_[name]['dedline'] = message.text
+        bot.send_message(message.chat.id, 'Укажите цену, к примеру - 1000руб')
+        bot.register_next_step_handler(message, pay_order, dict_, name_theme)
+
+
+def pay_order(message, dict_, name_theme):
+    if message.text == 'Назад 👉🏿':
+        get_command_start(message)
+    else:
+        """
+        полный алгоритм добавления заказа
+        """
+        conn = sqlite3.connect("nominal.sqlite")
+        cursor = conn.cursor()
+        my_ord = cursor.execute(
+            f'''SELECT my_orders FROM orders WHERE id_tg="{message.from_user.id}"''').fetchone()
+        json_data = json.loads(my_ord[0])
+        #
+        name = name_theme[0]
+        dict_[name]['pay'] = message.text
+        dict_[name]['responses'] = {}
+        print(dict_)
+        print(name_theme)
+        """
+        если это тема уже существует то просто добавляем в список
+        """
+        for themes in json_data:
+            if themes == name_theme[1]:
+                json_data[themes].append(dict_)
+                """
+                обновляем бд
+                """
+                cursor.execute(
+                    f"""UPDATE orders 
+                        SET my_orders='{json.dumps(json_data)}'
+                        WHERE id_tg='{message.from_user.id}'""")
+                conn.commit()
+                bot.send_message(message.from_user.id, 'Добавлено')
+                get_command_start(message)
+                return
+        """
+        если этой темы ещё нет 
+        то создаём новую и добавляем
+        в неё данные
+        """
+        json_data[name_theme[1]] = [dict_]
+        """
+        обновляем бд
+        """
+        cursor.execute(
+            f"""UPDATE orders 
+                SET my_orders='{json.dumps(json_data)}'
+                WHERE id_tg='{message.from_user.id}'""")
+        conn.commit()
+        bot.send_message(message.from_user.id, 'Добавлено')
+        get_command_start(message)
 
 
 @bot.message_handler(content_types=['contact'])
