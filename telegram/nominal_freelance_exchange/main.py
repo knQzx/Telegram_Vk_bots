@@ -5,14 +5,21 @@ import sqlite3
 import telebot
 from telebot import types
 
-bot = telebot.TeleBot('ТОКЕН')
+bot = telebot.TeleBot('TOKEN')
+
+
+# TODO: english menu
+# TODO: admin menu
+# TODO: system rating
 
 
 @bot.message_handler(commands=['start'])
 @bot.message_handler(content_types=['Меню 👉🏿'])
 @bot.message_handler(content_types=['Назад 👉🏿'])
 def get_command_start(message):
-    """проверяем есть ли уже такие данные в бд"""
+    """
+    проверяем есть ли уже такие данные в бд
+    """
     conn = sqlite3.connect("nominal.sqlite")
     cursor = conn.cursor()
     res_1 = cursor.execute(
@@ -30,7 +37,7 @@ def get_command_start(message):
         bot.register_next_step_handler(message, send_privacy_policy)
     else:
         keyboard = types.InlineKeyboardMarkup()
-        key_take = types.InlineKeyboardButton(text='Взять заказ', callback_data='take_order')
+        key_take = types.InlineKeyboardButton(text='Смотреть заказы', callback_data='take_order')
         key_my = types.InlineKeyboardButton(text='Мои заказы', callback_data='my_orders')
         key_rating = types.InlineKeyboardButton(text='Посмотреть историю рейтинга',
                                                 callback_data='my_rating')
@@ -39,7 +46,6 @@ def get_command_start(message):
         """
         считаем сколько заказов на бирже сейчас наших
         """
-        print(res_3)
         if res_3 is None:
             my_orders_on_exchange = '0'
         else:
@@ -47,28 +53,26 @@ def get_command_start(message):
         """
         считаем сколько заказов выполнено наших
         """
-        print(res_4)
         if res_4 is None:
             my_completed_orders = '0'
         else:
             my_completed_orders = len(res_4)
-        text = f'⚡️Здравствуйте, {res_1[2]} {res_1[1]} ⚡\n🔥Ваш рейтинг - {res_2[1]} ⭐\n' \
+        text = f'⚡️Здравствуйте, {res_1[2]} {res_1[1]} ⚡\n🔥 Ваш рейтинг - {res_2[1]} ⭐\n' \
                f'🙀 Выполнено заказов - {my_completed_orders}\n' \
                f'🎃 Ваших заказов на бирже - {my_orders_on_exchange}\n' \
                f'🤯 Пользователей в данный момент на бирже - {random.randint(14, 49)}'
         bot.send_message(message.from_user.id, text, reply_markup=keyboard)
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
         keyboard.add('Меню 👉🏿')
+        keyboard.add('Начать чат с пользователем 😎')
         keyboard.add('Написать в тех-поддержку 🤖')
         bot.send_message(message.from_user.id, 'Новых сообщений нет', reply_markup=keyboard)
 
 
-"""
-отправляем файл политики конфиденциальности
-"""
-
-
 def send_privacy_policy(message):
+    """
+    отправляем файл политики конфиденциальности
+    """
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     if message.text == 'English 🎃':
         keyboard.add('I do not accept ❌', 'I accept ✅')
@@ -80,12 +84,10 @@ def send_privacy_policy(message):
                           reply_markup=keyboard)
 
 
-"""
-поделиться телефоном
-"""
-
-
 def create_ask_phone(language):
+    """
+    поделиться телефоном
+    """
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     if language == 'ru':
         key = types.KeyboardButton('Поделиться своим номером телефона ✅', request_contact=True)
@@ -96,11 +98,56 @@ def create_ask_phone(language):
     return markup
 
 
+def check_username(message):
+    if message.text == 'Меню 👉🏿':
+        get_command_start(message)
+    else:
+        username = message.text
+        if '@' in username:
+            username = username[1:]
+        """
+        делаем запрос и пробуем отправить
+        сообщение пользователю, если ок - меняем параметр
+        на True и делаем чат, если False, значит не судьба
+        """
+        bot.send_message(message.from_user.id, 'Введите текст сообщения')
+        bot.register_next_step_handler(message, send_message, username)
+
+
+def send_message(message, username):
+    if message.text == 'Меню 👉🏿':
+        get_command_start(message)
+    else:
+        conn = sqlite3.connect("nominal.sqlite")
+        cursor = conn.cursor()
+        my_ord = cursor.execute(
+            f'''SELECT id_tg FROM users WHERE username_tg="{username}"''').fetchone()
+        try:
+            bot.send_message(int(my_ord[0]),
+                             f'Сообщение от пользователя: @{message.from_user.username}\n'
+                             f'Текст сообщения: {message.text}')
+            bot.send_message(message.from_user.id,
+                             f'Сообщение доставлено')
+        except:
+            bot.send_message(message.from_user.id,
+                             f'Вы не можете отправить сообщение этому пользователю.')
+            return
+
+
 @bot.message_handler(content_types=['text'])
 def get_text_messages(message):
+    """
+    TODO: admin menu
+    """
     if message.text == 'Принимаю ✅':
         bot.send_message(message.from_user.id, 'Привет! Делись контактом :>',
                          reply_markup=create_ask_phone('ru'))
+    elif message.text == 'Начать чат с пользователем 😎':
+        bot.send_message(message.from_user.id, 'Ну что ж, введи ник пользователя. '
+                                               'Если он пользуется ботом то вы сможете '
+                                               'ему доставить сообщение, если нет - то нет. '
+                                               'Введи ник в формате @username.')
+        bot.register_next_step_handler(message, check_username)
     elif message.text == 'I accept ✅':
         bot.send_message(message.from_user.id, 'Hi! Can you send me your contact? :>',
                          reply_markup=create_ask_phone('en'))
@@ -203,10 +250,223 @@ def get_text_messages(message):
         bot.send_message(message.from_user.id, 'Наш админ - @knQzx')
 
 
+def add_response_from(message, dict_data, theme):
+    if message.text == 'Меню 👉🏿':
+        get_command_start(message)
+    else:
+        """
+        ранее подготовили словарь для добавления
+        """
+        conn = sqlite3.connect("nominal.sqlite")
+        cursor = conn.cursor()
+        my_ord = cursor.execute(
+            f'''SELECT * FROM orders''').fetchall()
+        for i in range(len(my_ord)):
+            if f'{dict_data}' in f'{(json.loads(my_ord[i][1]))}':
+                new_json = (json.loads(my_ord[i][1]))
+                for theme in new_json:
+                    if dict_data in new_json[theme]:
+                        index = ((new_json[theme]).index(dict_data))
+                        for el in dict_data: dict_data[el]['responses'][
+                            f"{message.from_user.username}"] = message.text
+                        print(dict_data)
+                        new_json[theme][index] = dict_data
+                        print(new_json)
+                        """
+                        обновляем данные и выходим
+                        """
+                        conn = sqlite3.connect("nominal.sqlite")
+                        cursor = conn.cursor()
+                        cursor.execute(
+                            f"""UPDATE orders 
+                                SET my_orders='{json.dumps(new_json)}'
+                                WHERE id_tg='{message.from_user.id}'""")
+                        conn.commit()
+                        bot.send_message(message.from_user.id, 'Ваш отклик принят')
+                        return
+
+
 # обработчик клавиатуры
 @bot.callback_query_handler(func=lambda call: True)
 def callback_worker(call):
-    if call.data == 'my_rating':
+    global id_last_order, theme, full_datas, number_order, last_number_order
+    if call.data == 'take_order':
+        """
+        подгружаем все данные из почти всех бд
+        """
+        keyboard = types.InlineKeyboardMarkup()
+        key_1 = types.InlineKeyboardButton(text='Web ⚡️', callback_data='ord_1')
+        key_2 = types.InlineKeyboardButton(text='Telegram боты 🖥', callback_data='ord_2')
+        key_3 = types.InlineKeyboardButton(text='Вк боты 🔥', callback_data='ord_3')
+        key_4 = types.InlineKeyboardButton(text='Скрипты 💻', callback_data='ord_4')
+        key_5 = types.InlineKeyboardButton(text='Взлом хакинг 💥', callback_data='ord_5')
+        key_6 = types.InlineKeyboardButton(text='Проекты для школы ✨', callback_data='ord_6')
+        keyboard.add(key_1, key_2)
+        keyboard.add(key_3, key_4)
+        keyboard.add(key_5, key_6)
+        ms = bot.send_message(call.message.chat.id, 'Выберите пожалуйста тему в которой будет '
+                                                    'распологаться ваш заказ',
+                              reply_markup=keyboard)
+        id_last_order = ms.id
+    elif 'key_response' in call.data:
+        bot.send_message(call.message.chat.id, 'Введите текст отклика')
+        bot.register_next_step_handler(call.message, add_response_from,
+                                       full_datas[int(call.data.split('_')[2])], theme)
+    elif 'ord' in call.data and call.data != 'my_orders':
+        if call.data == 'ord_1':
+            theme = 'Web ⚡️'
+        elif call.data == 'ord_2':
+            theme = 'Telegram боты 🖥'
+        elif call.data == 'ord_3':
+            theme = 'Вк боты 🔥'
+        elif call.data == 'ord_4':
+            theme = 'Скрипты 💻'
+        elif call.data == 'ord_5':
+            theme = 'Взлом хакинг 💥'
+        elif call.data == 'ord_6':
+            theme = 'Проекты для школы ✨'
+        """
+        подключаемся к бд
+        """
+        conn = sqlite3.connect("nominal.sqlite")
+        cursor = conn.cursor()
+        """
+        добавляем в список данные где наша тема
+        """
+        list_data = []
+        full_data = {}
+        """
+        наш список куда будем добавлять
+        """
+        res_3 = cursor.execute(
+            f'''SELECT my_orders FROM orders''').fetchall()
+        for el in res_3:
+            json_data = json.loads(el[0])
+            for themes in json_data:
+                if theme == themes:
+                    if json_data[theme]:
+                        list_data.append(json_data[theme])
+        k = 1
+        for el in list_data:
+            for _ in el:
+                full_data[k] = _
+                k += 1
+        full_datas = full_data
+        """
+        если в этой теме ничего нет
+        то просто выводим что ничего нет
+        """
+        if full_datas == {}:
+            bot.send_message(call.message.chat.id, 'В этой теме ещё ничего нет(((')
+            return
+        """
+        словарь со всеми данными каждого
+        заказа темы которую 
+        выбрал пользователь 
+        """
+        """
+        теперь добавляем инлайн клавиатуру,
+        записываем id каждого отправленного отклика,
+        добавляем кнопки 'отклик'
+        """
+        number_order = 1
+        last_number_order = k
+        keyboard = types.InlineKeyboardMarkup()
+        key_response = types.InlineKeyboardButton(text=f'Отклик на заказ',
+                                                  callback_data=f'key_response_{number_order}')
+        key_left = types.InlineKeyboardButton(text='⬅️',
+                                              callback_data=f'key_left_{number_order - 1}')
+        key_number = types.InlineKeyboardButton(text=f'{number_order}/{last_number_order - 1}',
+                                                callback_data='key_number')
+        key_right = types.InlineKeyboardButton(text='➡️',
+                                               callback_data=f'key_right_{number_order + 1}')
+        key_back = types.InlineKeyboardButton(text='Назад', callback_data='key_back_menu')
+        keyboard.add(key_response)
+        keyboard.add(key_left, key_number, key_right)
+        keyboard.add(key_back)
+        """
+        теперь отправляем пользователю это
+        """
+        for name in full_datas[number_order]:
+            text_caption = f'Название заказа: {name}\n'
+            text_caption += f'Описание заказа: {full_datas[number_order][name]["description"]}\n'
+            text_caption += f'Дедлайн заказа: {full_datas[number_order][name]["dedline"]}\n'
+            text_caption += f'Оплата: {full_datas[number_order][name]["pay"]}\n'
+            if full_datas[number_order][name]["responses"] != {}:
+                for response_name in full_datas[number_order][name]["responses"]:
+                    text_caption += f'Отклик @{response_name} - {full_datas[number_order][name]["responses"][response_name]}\n'
+        bot.send_photo(call.message.chat.id, caption=text_caption,
+                       photo=open('ru/code.png', mode='rb'),
+                       reply_markup=keyboard)
+        id_last_order = call.message.id
+    elif 'key_left' in call.data:
+        number_order -= 1
+        if call.data.split('_')[2] == '0':
+            number_order = last_number_order - 1
+        keyboard = types.InlineKeyboardMarkup()
+        key_response = types.InlineKeyboardButton(text=f'Отклик на заказ',
+                                                  callback_data=f'key_response_{number_order}')
+        key_left = types.InlineKeyboardButton(text='⬅️',
+                                              callback_data=f'key_left_{number_order - 1}')
+        key_number = types.InlineKeyboardButton(text=f'{number_order}/{last_number_order - 1}',
+                                                callback_data='key_number')
+        key_right = types.InlineKeyboardButton(text='➡️',
+                                               callback_data=f'key_right_{number_order + 1}')
+        key_back = types.InlineKeyboardButton(text='Назад', callback_data='key_back_menu')
+        keyboard.add(key_response)
+        keyboard.add(key_left, key_number, key_right)
+        keyboard.add(key_back)
+        """
+        теперь отправляем пользователю это
+        """
+        for name in full_datas[number_order]:
+            text_caption = f'Название заказа: {name}\n'
+            text_caption += f'Описание заказа: {full_datas[number_order][name]["description"]}\n'
+            text_caption += f'Дедлайн заказа: {full_datas[number_order][name]["dedline"]}\n'
+            text_caption += f'Оплата: {full_datas[number_order][name]["pay"]}\n'
+            if full_datas[number_order][name]["responses"] != {}:
+                for response_name in full_datas[number_order][name]["responses"]:
+                    text_caption += f'Отклик @{response_name} - {full_datas[number_order][name]["responses"][response_name]}\n'
+        bot.delete_message(call.message.chat.id, id_last_order + 1)
+        bot.send_photo(call.message.chat.id, caption=text_caption,
+                       photo=open('ru/code.png', mode='rb'),
+                       reply_markup=keyboard)
+        id_last_order = call.message.id
+    elif 'key_right' in call.data:
+        number_order += 1
+        if call.data.split('_')[2] == str(last_number_order):
+            print(call.data.split('_'))
+            number_order = 1
+        keyboard = types.InlineKeyboardMarkup()
+        key_response = types.InlineKeyboardButton(text=f'Отклик на заказ',
+                                                  callback_data=f'key_response_{number_order}')
+        key_left = types.InlineKeyboardButton(text='⬅️',
+                                              callback_data=f'key_left_{number_order - 1}')
+        key_number = types.InlineKeyboardButton(text=f'{number_order}/{last_number_order - 1}',
+                                                callback_data='key_number')
+        key_right = types.InlineKeyboardButton(text='➡️',
+                                               callback_data=f'key_right_{number_order + 1}')
+        key_back = types.InlineKeyboardButton(text='Назад', callback_data='key_back_menu')
+        keyboard.add(key_response)
+        keyboard.add(key_left, key_number, key_right)
+        keyboard.add(key_back)
+        """
+        теперь отправляем пользователю это
+        """
+        for name in full_datas[number_order]:
+            text_caption = f'Название заказа: {name}\n'
+            text_caption += f'Описание заказа: {full_datas[number_order][name]["description"]}\n'
+            text_caption += f'Дедлайн заказа: {full_datas[number_order][name]["dedline"]}\n'
+            text_caption += f'Оплата: {full_datas[number_order][name]["pay"]}\n'
+            if full_datas[number_order][name]["responses"] != {}:
+                for response_name in full_datas[number_order][name]["responses"]:
+                    text_caption += f'Отклик @{response_name} - {full_datas[number_order][name]["responses"][response_name]}\n'
+        bot.delete_message(call.message.chat.id, id_last_order + 1)
+        bot.send_photo(call.message.chat.id, caption=text_caption,
+                       photo=open('ru/code.png', mode='rb'),
+                       reply_markup=keyboard)
+        id_last_order = call.message.id
+    elif call.data == 'my_rating':
         """
         берём из бд рейтинг чела
         """
@@ -328,8 +588,6 @@ def pay_order(message, dict_, name_theme):
         name = name_theme[0]
         dict_[name]['pay'] = message.text
         dict_[name]['responses'] = {}
-        print(dict_)
-        print(name_theme)
         """
         если это тема уже существует то просто добавляем в список
         """
