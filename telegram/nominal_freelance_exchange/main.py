@@ -5,7 +5,7 @@ import sqlite3
 import telebot
 from telebot import types
 
-bot = telebot.TeleBot('TOKEN')
+bot = telebot.TeleBot('2032759102:AAHdlvmMDN3d9sGZQNdEVqRXl3r5S5SEGzc')
 
 
 # TODO: english menu
